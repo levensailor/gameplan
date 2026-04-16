@@ -1,7 +1,21 @@
 import { z } from "zod";
 
+function normalizeEnvValue(value: string | undefined): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith("\"") && trimmed.endsWith("\"")) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+}
+
 function requireString(name: string, minLength = 1): string {
-  const value = process.env[name];
+  const value = normalizeEnvValue(process.env[name]);
   const parsed = z.string().min(minLength).safeParse(value);
   if (!parsed.success) {
     throw new Error(`Missing or invalid environment variable: ${name}`);
@@ -10,7 +24,7 @@ function requireString(name: string, minLength = 1): string {
 }
 
 function requireUrl(name: string, fallback?: string): string {
-  const value = process.env[name] ?? fallback;
+  const value = normalizeEnvValue(process.env[name]) ?? fallback;
   const parsed = z.url().safeParse(value);
   if (!parsed.success) {
     throw new Error(`Missing or invalid URL environment variable: ${name}`);
