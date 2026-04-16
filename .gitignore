@@ -1,0 +1,13 @@
+.vercel
+prompts.md
+.env
+.env.*
+!.env.example
+node_modules
+.next
+dist
+build
+coverage
+*.log
+.DS_Store
+tmp
