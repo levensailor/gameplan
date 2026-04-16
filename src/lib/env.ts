@@ -1,35 +1,58 @@
 import { z } from "zod";
 
-const envSchema = z.object({
-  NEXT_PUBLIC_SUPABASE_URL: z.url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  WEBEX_CLIENT_ID: z.string().min(1),
-  WEBEX_CLIENT_SECRET: z.string().min(1),
-  WEBEX_REDIRECT_URI: z.url(),
-  WEBEX_OAUTH_AUTHORIZE_URL: z.url().default("https://webexapis.com/v1/authorize"),
-  WEBEX_OAUTH_TOKEN_URL: z
-    .url()
-    .default("https://webexapis.com/v1/access_token"),
-  APP_BASE_URL: z.url(),
-  SESSION_SECRET: z.string().min(32)
-});
-
-const parsed = envSchema.safeParse({
-  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-  WEBEX_CLIENT_ID: process.env.WEBEX_CLIENT_ID,
-  WEBEX_CLIENT_SECRET: process.env.WEBEX_CLIENT_SECRET,
-  WEBEX_REDIRECT_URI: process.env.WEBEX_REDIRECT_URI,
-  WEBEX_OAUTH_AUTHORIZE_URL: process.env.WEBEX_OAUTH_AUTHORIZE_URL,
-  WEBEX_OAUTH_TOKEN_URL: process.env.WEBEX_OAUTH_TOKEN_URL,
-  APP_BASE_URL: process.env.APP_BASE_URL,
-  SESSION_SECRET: process.env.SESSION_SECRET
-});
-
-if (!parsed.success) {
-  throw new Error(`Invalid environment configuration: ${parsed.error.message}`);
+function requireString(name: string, minLength = 1): string {
+  const value = process.env[name];
+  const parsed = z.string().min(minLength).safeParse(value);
+  if (!parsed.success) {
+    throw new Error(`Missing or invalid environment variable: ${name}`);
+  }
+  return parsed.data;
 }
 
-export const env = parsed.data;
+function requireUrl(name: string, fallback?: string): string {
+  const value = process.env[name] ?? fallback;
+  const parsed = z.url().safeParse(value);
+  if (!parsed.success) {
+    throw new Error(`Missing or invalid URL environment variable: ${name}`);
+  }
+  return parsed.data;
+}
+
+export const env = {
+  get NEXT_PUBLIC_SUPABASE_URL() {
+    return requireUrl("NEXT_PUBLIC_SUPABASE_URL");
+  },
+  get NEXT_PUBLIC_SUPABASE_ANON_KEY() {
+    return requireString("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  },
+  get SUPABASE_SERVICE_ROLE_KEY() {
+    return requireString("SUPABASE_SERVICE_ROLE_KEY");
+  },
+  get WEBEX_CLIENT_ID() {
+    return requireString("WEBEX_CLIENT_ID");
+  },
+  get WEBEX_CLIENT_SECRET() {
+    return requireString("WEBEX_CLIENT_SECRET");
+  },
+  get WEBEX_REDIRECT_URI() {
+    return requireUrl("WEBEX_REDIRECT_URI");
+  },
+  get WEBEX_OAUTH_AUTHORIZE_URL() {
+    return requireUrl(
+      "WEBEX_OAUTH_AUTHORIZE_URL",
+      "https://webexapis.com/v1/authorize"
+    );
+  },
+  get WEBEX_OAUTH_TOKEN_URL() {
+    return requireUrl(
+      "WEBEX_OAUTH_TOKEN_URL",
+      "https://webexapis.com/v1/access_token"
+    );
+  },
+  get APP_BASE_URL() {
+    return requireUrl("APP_BASE_URL");
+  },
+  get SESSION_SECRET() {
+    return requireString("SESSION_SECRET", 32);
+  }
+};
