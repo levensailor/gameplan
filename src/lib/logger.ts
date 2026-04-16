@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const LOG_DIR = path.join(process.cwd(), "logs");
+const LOG_BASE_DIR = process.env.VERCEL ? "/tmp" : process.cwd();
+const LOG_DIR = path.join(LOG_BASE_DIR, "logs");
 const LOG_FILE = path.join(LOG_DIR, "app.log");
 const MAX_SIZE_BYTES = 1024 * 1024;
 const MAX_ARCHIVES = 3;
@@ -9,30 +10,38 @@ const MAX_ARCHIVES = 3;
 type LogLevel = "INFO" | "WARN" | "ERROR";
 
 function ensureLogDirectory() {
-  if (!fs.existsSync(LOG_DIR)) {
-    fs.mkdirSync(LOG_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(LOG_DIR)) {
+      fs.mkdirSync(LOG_DIR, { recursive: true });
+    }
+  } catch {
+    // File logging should never break request handling.
   }
 }
 
 function rotateIfNeeded() {
-  if (!fs.existsSync(LOG_FILE)) {
-    return;
-  }
-
-  const stats = fs.statSync(LOG_FILE);
-  if (stats.size < MAX_SIZE_BYTES) {
-    return;
-  }
-
-  for (let index = MAX_ARCHIVES - 1; index >= 1; index -= 1) {
-    const source = `${LOG_FILE}.${index}`;
-    const target = `${LOG_FILE}.${index + 1}`;
-    if (fs.existsSync(source)) {
-      fs.renameSync(source, target);
+  try {
+    if (!fs.existsSync(LOG_FILE)) {
+      return;
     }
-  }
 
-  fs.renameSync(LOG_FILE, `${LOG_FILE}.1`);
+    const stats = fs.statSync(LOG_FILE);
+    if (stats.size < MAX_SIZE_BYTES) {
+      return;
+    }
+
+    for (let index = MAX_ARCHIVES - 1; index >= 1; index -= 1) {
+      const source = `${LOG_FILE}.${index}`;
+      const target = `${LOG_FILE}.${index + 1}`;
+      if (fs.existsSync(source)) {
+        fs.renameSync(source, target);
+      }
+    }
+
+    fs.renameSync(LOG_FILE, `${LOG_FILE}.1`);
+  } catch {
+    // Ignore rotate failures so API handlers continue.
+  }
 }
 
 function getCallerInfo() {
@@ -68,7 +77,11 @@ function write(level: LogLevel, message: string, meta?: Record<string, unknown>)
   const line = `[${estTimestamp()} EST] [${level}] [${caller.func}:${caller.line}] ${message}${serializedMeta}`;
   // eslint-disable-next-line no-console
   console.log(line);
-  fs.appendFileSync(LOG_FILE, `${line}\n`, { encoding: "utf8" });
+  try {
+    fs.appendFileSync(LOG_FILE, `${line}\n`, { encoding: "utf8" });
+  } catch {
+    // Ignore file write errors in read-only/serverless contexts.
+  }
 }
 
 export const logger = {
