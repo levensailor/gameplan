@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { Board } from "@/components/board/Board";
-import { EngineerBar } from "@/components/layout/EngineerBar";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { getBoardSnapshot } from "@/lib/board";
 import { getSessionFromCookies } from "@/lib/session";
@@ -29,7 +28,6 @@ export default async function BoardPage() {
       <div className="flex min-h-0 flex-1 flex-col px-4 pt-4">
         <Board initialData={data} />
       </div>
-      <EngineerBar engineers={data.engineers} />
     </main>
   );
 }

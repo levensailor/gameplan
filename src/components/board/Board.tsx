@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FaPlus } from "react-icons/fa";
 import { CardItem } from "@/components/board/CardItem";
 import { CardModal } from "@/components/board/CardModal";
+import { EngineerBar } from "@/components/layout/EngineerBar";
 import type { BoardSnapshot, PlannerCard } from "@/lib/types";
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
 
 export function Board({ initialData }: Props) {
   const [cards, setCards] = useState(initialData.cards);
+  const [engineers, setEngineers] = useState(initialData.engineers);
   const [assignments, setAssignments] = useState(initialData.assignments);
   const [activeCard, setActiveCard] = useState<PlannerCard | null>(null);
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
@@ -23,13 +25,13 @@ export function Board({ initialData }: Props) {
   const engineerByCard = useMemo(() => {
     const map = new Map<string, string | null>();
     for (const assignment of assignments) {
-      const engineer = initialData.engineers.find(
+      const engineer = engineers.find(
         (item) => item.id === assignment.engineer_id
       );
       map.set(assignment.card_id, engineer?.avatar_url ?? null);
     }
     return map;
-  }, [assignments, initialData.engineers]);
+  }, [assignments, engineers]);
 
   async function addCard(columnId: string) {
     const name = window.prompt("Card name");
@@ -92,57 +94,90 @@ export function Board({ initialData }: Props) {
     ]);
   }
 
+  async function addEngineerByEmail(email: string) {
+    const response = await fetch("/api/engineers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email })
+    });
+
+    const payload = (await response.json()) as {
+      engineer?: {
+        id: string;
+        first_name: string;
+        last_name: string;
+        email: string;
+        avatar_url: string | null;
+      };
+      error?: string;
+    };
+
+    if (!response.ok || !payload.engineer) {
+      throw new Error(payload.error ?? "Failed to add engineer");
+    }
+
+    setEngineers((prev) => {
+      const filtered = prev.filter((item) => item.id !== payload.engineer?.id);
+      return [...filtered, payload.engineer as (typeof prev)[number]].sort((a, b) =>
+        a.first_name.localeCompare(b.first_name)
+      );
+    });
+  }
+
   return (
-    <section className="flex min-h-0 flex-1 gap-4 overflow-x-auto pb-6">
-      {initialData.columns.map((column) => {
-        const columnCards = cards.filter((card) => card.column_id === column.id);
+    <div className="flex min-h-0 flex-1 flex-col">
+      <section className="flex min-h-0 flex-1 gap-4 overflow-x-auto pb-6">
+        {initialData.columns.map((column) => {
+          const columnCards = cards.filter((card) => card.column_id === column.id);
 
-        return (
-          <div
-            key={column.id}
-            onDragOver={(event) => {
-              event.preventDefault();
-            }}
-            onDrop={(event) => {
-              event.preventDefault();
-              void moveCardToColumn(column.id);
-            }}
-            className="min-h-[640px] w-[320px] min-w-[320px] rounded-lg border border-slate-800 bg-slate-900/70 p-3"
-          >
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-300">
-              {column.name}
-            </h3>
-            <div className="mt-3 space-y-2">
-              {columnCards.map((card) => (
-                <CardItem
-                  key={card.id}
-                  card={card}
-                  engineerAvatar={engineerByCard.get(card.id)}
-                  hasFiles={false}
-                  onCardDragStart={setDraggedCardId}
-                  onEngineerDrop={(cardId, engineerId) =>
-                    void assignEngineer(cardId, engineerId)
-                  }
-                  onSelect={() => setActiveCard(card)}
-                  onDelete={() => void deleteCard(card.id)}
-                />
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => void addCard(column.id)}
-              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-slate-700 px-3 py-2 text-sm text-slate-300 hover:border-slate-500"
+          return (
+            <div
+              key={column.id}
+              onDragOver={(event) => {
+                event.preventDefault();
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                void moveCardToColumn(column.id);
+              }}
+              className="min-h-[640px] w-[320px] min-w-[320px] rounded-lg border border-slate-800 bg-slate-900/70 p-3"
             >
-              <FaPlus className="h-3 w-3" />
-              Add card
-            </button>
-          </div>
-        );
-      })}
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-300">
+                {column.name}
+              </h3>
+              <div className="mt-3 space-y-2">
+                {columnCards.map((card) => (
+                  <CardItem
+                    key={card.id}
+                    card={card}
+                    engineerAvatar={engineerByCard.get(card.id)}
+                    hasFiles={false}
+                    onCardDragStart={setDraggedCardId}
+                    onEngineerDrop={(cardId, engineerId) =>
+                      void assignEngineer(cardId, engineerId)
+                    }
+                    onSelect={() => setActiveCard(card)}
+                    onDelete={() => void deleteCard(card.id)}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => void addCard(column.id)}
+                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-slate-700 px-3 py-2 text-sm text-slate-300 hover:border-slate-500"
+              >
+                <FaPlus className="h-3 w-3" />
+                Add card
+              </button>
+            </div>
+          );
+        })}
 
-      {activeCard ? (
-        <CardModal card={activeCard} onClose={() => setActiveCard(null)} />
-      ) : null}
-    </section>
+        {activeCard ? (
+          <CardModal card={activeCard} onClose={() => setActiveCard(null)} />
+        ) : null}
+      </section>
+      <EngineerBar engineers={engineers} onAddEngineer={addEngineerByEmail} />
+    </div>
   );
 }

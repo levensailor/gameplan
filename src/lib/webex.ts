@@ -75,3 +75,27 @@ export async function fetchWebexDirectory(accessToken: string): Promise<WebexPer
   const data = (await response.json()) as { items?: WebexPerson[] };
   return data.items ?? [];
 }
+
+export async function fetchWebexPersonByEmail(
+  accessToken: string,
+  email: string
+): Promise<WebexPerson> {
+  const query = new URL("https://webexapis.com/v1/people");
+  query.searchParams.set("email", email);
+  query.searchParams.set("max", "1");
+
+  const response = await fetch(query.toString(), {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Webex person lookup failed with status ${response.status}`);
+  }
+
+  const data = (await response.json()) as { items?: WebexPerson[] };
+  const person = data.items?.[0];
+  if (!person) {
+    throw new Error("No Webex user found for the provided email");
+  }
+  return person;
+}
