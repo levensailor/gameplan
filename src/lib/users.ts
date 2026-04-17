@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabase";
+import { createFallbackAvatarDataUrl } from "@/lib/avatar";
 
 type UpsertUserArgs = {
   webexPersonId: string;
@@ -15,7 +16,9 @@ export async function upsertAppUser(args: UpsertUserArgs) {
     first_name: args.firstName,
     last_name: args.lastName,
     email: args.email,
-    avatar_url: args.avatarUrl ?? null,
+    avatar_url:
+      args.avatarUrl ??
+      createFallbackAvatarDataUrl(args.firstName, args.lastName, args.email),
     last_login_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };

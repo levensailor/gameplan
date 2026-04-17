@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import type { EngineerSummary } from "@/lib/types";
-import { FaPlus, FaUserCircle } from "react-icons/fa";
+import { FaPlus } from "react-icons/fa";
+import { createFallbackAvatarDataUrl } from "@/lib/avatar";
 
 type Props = {
   engineers: EngineerSummary[];
@@ -58,16 +59,19 @@ export function EngineerBar({ engineers, onAddEngineer }: Props) {
             data-engineer-id={engineer.id}
             className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-sm"
           >
-            {engineer.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={engineer.avatar_url}
-                alt={engineer.first_name}
-                className="h-6 w-6 rounded-full"
-              />
-            ) : (
-              <FaUserCircle className="h-6 w-6 text-slate-300" />
-            )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={
+                engineer.avatar_url ??
+                createFallbackAvatarDataUrl(
+                  engineer.first_name,
+                  engineer.last_name,
+                  engineer.email
+                )
+              }
+              alt={engineer.first_name || "Engineer"}
+              className="h-6 w-6 rounded-full"
+            />
             <span>{engineer.first_name}</span>
           </div>
         ))}

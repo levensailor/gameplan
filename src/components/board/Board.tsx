@@ -5,6 +5,7 @@ import { FaPlus } from "react-icons/fa";
 import { CardItem } from "@/components/board/CardItem";
 import { CardModal } from "@/components/board/CardModal";
 import { EngineerBar } from "@/components/layout/EngineerBar";
+import { createFallbackAvatarDataUrl } from "@/lib/avatar";
 import type { BoardSnapshot, PlannerCard } from "@/lib/types";
 
 type Props = {
@@ -28,7 +29,17 @@ export function Board({ initialData }: Props) {
       const engineer = engineers.find(
         (item) => item.id === assignment.engineer_id
       );
-      map.set(assignment.card_id, engineer?.avatar_url ?? null);
+      map.set(
+        assignment.card_id,
+        engineer
+          ? engineer.avatar_url ??
+              createFallbackAvatarDataUrl(
+                engineer.first_name,
+                engineer.last_name,
+                engineer.email
+              )
+          : null
+      );
     }
     return map;
   }, [assignments, engineers]);
