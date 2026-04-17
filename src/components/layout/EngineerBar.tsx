@@ -34,7 +34,7 @@ export function EngineerBar({ engineers, onAddEngineer }: Props) {
   }
 
   return (
-    <footer className="border-t border-slate-800 bg-slate-900/90 p-3">
+    <footer className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-800 bg-slate-900/95 p-3 backdrop-blur-sm">
       <p className="mb-2 text-xs uppercase tracking-wide text-slate-400">
         Engineers
       </p>
@@ -42,10 +42,11 @@ export function EngineerBar({ engineers, onAddEngineer }: Props) {
         <button
           type="button"
           onClick={() => setShowAddModal(true)}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-dashed border-slate-600 bg-slate-800 text-slate-300 hover:border-slate-400"
+          className="inline-flex items-center gap-2 rounded-full border border-dashed border-slate-500 bg-slate-800 px-3 py-1 text-sm text-slate-100 hover:border-slate-300"
           aria-label="Add engineer by email"
         >
           <FaPlus className="h-3 w-3" />
+          <span>Add engineer</span>
         </button>
         {engineers.map((engineer) => (
           <div

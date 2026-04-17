@@ -126,7 +126,7 @@ export function Board({ initialData }: Props) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <section className="flex min-h-0 flex-1 gap-4 overflow-x-auto pb-6">
+      <section className="flex min-h-0 flex-1 gap-4 overflow-x-auto pb-24">
         {initialData.columns.map((column) => {
           const columnCards = cards.filter((card) => card.column_id === column.id);
 
