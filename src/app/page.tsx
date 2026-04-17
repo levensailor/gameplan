@@ -1,11 +1,12 @@
-"use client";
-
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
-  const searchParams = useSearchParams();
-  const error = searchParams.get("error");
+type LoginPageProps = {
+  searchParams: Promise<{ error?: string }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams;
+  const error = params.error ?? null;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6">
