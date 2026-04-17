@@ -42,9 +42,16 @@ export async function GET(request: Request) {
     logger.info("OAuth login success", { userId: user.id });
     return NextResponse.redirect(new URL("/board", request.url));
   } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error";
     logger.error("OAuth callback failed", {
-      message: error instanceof Error ? error.message : "unknown error"
+      message
     });
-    return NextResponse.redirect(new URL("/", request.url));
+    const loginUrl = new URL("/", request.url);
+    if (message.includes("Could not find the table 'public.app_users'")) {
+      loginUrl.searchParams.set("error", "db_setup_required");
+    } else {
+      loginUrl.searchParams.set("error", "oauth_failed");
+    }
+    return NextResponse.redirect(loginUrl);
   }
 }
