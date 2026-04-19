@@ -114,7 +114,14 @@ export function CardModal({
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
       <div className="w-full max-w-3xl rounded-lg border border-slate-700 bg-slate-900 p-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Edit Card</h2>
+          <input
+            value={form.name}
+            onChange={(event) =>
+              setForm((prev) => ({ ...prev, name: event.target.value }))
+            }
+            className="w-full bg-transparent pr-3 text-lg font-semibold text-slate-100 outline-none placeholder:text-slate-500"
+            placeholder="Untitled card"
+          />
           <button onClick={onClose} type="button" className="text-sm text-slate-300">
             Close
           </button>
@@ -190,17 +197,6 @@ export function CardModal({
               <p className="text-xs text-red-300">{labelError}</p>
             ) : null}
           </div>
-
-          <label className="grid gap-1 text-sm">
-            <span className="text-slate-300">Name</span>
-            <input
-              value={form.name}
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, name: event.target.value }))
-              }
-              className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2"
-            />
-          </label>
 
           <div className="grid gap-3 md:grid-cols-2">
             <label className="grid gap-1 text-sm">
