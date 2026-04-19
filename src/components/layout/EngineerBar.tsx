@@ -185,8 +185,17 @@ export function EngineerBar({
 
       {activeEngineer ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-lg border border-slate-700 bg-slate-900 p-4">
-            <h3 className="text-sm font-semibold">Engineer Profile</h3>
+          <div className="w-full max-w-md -translate-y-14 rounded-lg border border-slate-700 bg-slate-900 p-4 sm:-translate-y-20">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Engineer Profile</h3>
+              <button
+                type="button"
+                onClick={() => setActiveEngineer(null)}
+                className="rounded-md border border-slate-600 px-2 py-1 text-xs text-slate-200"
+              >
+                Close
+              </button>
+            </div>
             <div className="mt-3 grid gap-2 text-sm">
               <p>
                 <span className="text-slate-400">First:</span>{" "}
