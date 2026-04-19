@@ -146,7 +146,7 @@ export function EngineerBar({
 
       {showAddModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-lg border border-slate-700 bg-slate-900 p-4">
+          <div className="w-full max-w-sm -translate-y-12 rounded-lg border border-slate-700 bg-slate-900 p-4 sm:-translate-y-16">
             <h3 className="text-sm font-semibold">Add Engineer</h3>
             <p className="mt-1 text-xs text-slate-400">
               Enter a Webex user email address.
