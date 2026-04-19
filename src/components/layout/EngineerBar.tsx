@@ -9,17 +9,25 @@ type Props = {
   engineers: EngineerSummary[];
   onAddEngineer: (email: string) => Promise<void>;
   onUnassignEngineer: (cardId: string, engineerId: string) => Promise<void>;
+  onUpdateEngineerProfile: (
+    engineerId: string,
+    payload: { title: string | null; skills: string | null }
+  ) => Promise<void>;
 };
 
 export function EngineerBar({
   engineers,
   onAddEngineer,
-  onUnassignEngineer
+  onUnassignEngineer,
+  onUpdateEngineerProfile
 }: Props) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [email, setEmail] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeEngineer, setActiveEngineer] = useState<EngineerSummary | null>(null);
+  const [profileTitle, setProfileTitle] = useState("");
+  const [profileSkills, setProfileSkills] = useState("");
 
   async function submitEngineer() {
     setIsSaving(true);
@@ -33,6 +41,33 @@ export function EngineerBar({
         submitError instanceof Error
           ? submitError.message
           : "Failed to add engineer"
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function openEngineerProfile(engineer: EngineerSummary) {
+    setActiveEngineer(engineer);
+    setProfileTitle(engineer.title ?? "");
+    setProfileSkills(engineer.skills ?? "");
+  }
+
+  async function saveEngineerProfile() {
+    if (!activeEngineer) {
+      return;
+    }
+    setIsSaving(true);
+    setError(null);
+    try {
+      await onUpdateEngineerProfile(activeEngineer.id, {
+        title: profileTitle.trim() || null,
+        skills: profileSkills.trim() || null
+      });
+      setActiveEngineer(null);
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error ? saveError.message : "Failed to save profile"
       );
     } finally {
       setIsSaving(false);
@@ -87,8 +122,9 @@ export function EngineerBar({
             onDragStart={(event) => {
               event.dataTransfer.setData("application/x-gameplan-engineer", engineer.id);
             }}
+            onClick={() => openEngineerProfile(engineer)}
             data-engineer-id={engineer.id}
-            className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-sm"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-sm"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -141,6 +177,64 @@ export function EngineerBar({
                 className="rounded-md bg-sky-500 px-3 py-1.5 text-sm font-semibold text-slate-950 disabled:opacity-50"
               >
                 {isSaving ? "Adding..." : "Add"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {activeEngineer ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-lg border border-slate-700 bg-slate-900 p-4">
+            <h3 className="text-sm font-semibold">Engineer Profile</h3>
+            <div className="mt-3 grid gap-2 text-sm">
+              <p>
+                <span className="text-slate-400">First:</span>{" "}
+                {activeEngineer.first_name || "-"}
+              </p>
+              <p>
+                <span className="text-slate-400">Last:</span>{" "}
+                {activeEngineer.last_name || "-"}
+              </p>
+              <p>
+                <span className="text-slate-400">Email:</span>{" "}
+                {activeEngineer.email}
+              </p>
+              <label className="grid gap-1">
+                <span className="text-slate-300">Title</span>
+                <input
+                  value={profileTitle}
+                  onChange={(event) => setProfileTitle(event.target.value)}
+                  className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2"
+                />
+              </label>
+              <label className="grid gap-1">
+                <span className="text-slate-300">Skills</span>
+                <textarea
+                  value={profileSkills}
+                  onChange={(event) => setProfileSkills(event.target.value)}
+                  rows={5}
+                  className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2"
+                />
+              </label>
+            </div>
+            {error ? <p className="mt-2 text-xs text-red-300">{error}</p> : null}
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={() => setActiveEngineer(null)}
+                className="rounded-md border border-slate-600 px-3 py-1.5 text-sm"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={() => void saveEngineerProfile()}
+                className="rounded-md bg-sky-500 px-3 py-1.5 text-sm font-semibold text-slate-950"
+              >
+                {isSaving ? "Saving..." : "Save"}
               </button>
             </div>
           </div>

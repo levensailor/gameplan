@@ -153,6 +153,8 @@ export function Board({ initialData }: Props) {
         last_name: string;
         email: string;
         avatar_url: string | null;
+        title: string | null;
+        skills: string | null;
       };
       error?: string;
     };
@@ -167,6 +169,29 @@ export function Board({ initialData }: Props) {
         a.first_name.localeCompare(b.first_name)
       );
     });
+  }
+
+  async function updateEngineerProfile(
+    engineerId: string,
+    payload: { title: string | null; skills: string | null }
+  ) {
+    const response = await fetch(`/api/engineers/${engineerId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = (await response.json()) as {
+      engineer?: (typeof engineers)[number];
+      error?: string;
+    };
+    if (!response.ok || !data.engineer) {
+      throw new Error(data.error ?? "Failed to update engineer");
+    }
+    setEngineers((prev) =>
+      prev.map((engineer) =>
+        engineer.id === data.engineer?.id ? data.engineer : engineer
+      )
+    );
   }
 
   return (
@@ -227,6 +252,7 @@ export function Board({ initialData }: Props) {
         engineers={engineers}
         onAddEngineer={addEngineerByEmail}
         onUnassignEngineer={unassignEngineer}
+        onUpdateEngineerProfile={updateEngineerProfile}
       />
     </div>
   );

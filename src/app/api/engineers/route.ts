@@ -23,7 +23,8 @@ export async function POST(request: Request) {
       firstName: person.firstName ?? person.displayName.split(" ")[0] ?? "User",
       lastName: person.lastName ?? person.displayName.split(" ").slice(1).join(" "),
       email: person.emails?.[0] ?? payload.email,
-      avatarUrl: person.avatar ?? null
+      avatarUrl: person.avatar ?? null,
+      title: person.title ?? null
     });
 
     return NextResponse.json({ engineer });

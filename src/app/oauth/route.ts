@@ -26,7 +26,8 @@ export async function GET(request: Request) {
       firstName: profile.firstName ?? profile.displayName.split(" ")[0] ?? "User",
       lastName: profile.lastName ?? profile.displayName.split(" ").slice(1).join(" "),
       email: profile.emails?.[0] ?? `${profile.id}@webex.local`,
-      avatarUrl: profile.avatar ?? null
+      avatarUrl: profile.avatar ?? null,
+      title: profile.title ?? null
     });
 
     await setSessionCookie({

@@ -18,7 +18,7 @@ export async function getBoardSnapshot(): Promise<BoardSnapshot> {
         .order("position", { ascending: true }),
       supabase
         .from("app_users")
-        .select("id,first_name,last_name,email,avatar_url")
+        .select("id,first_name,last_name,email,avatar_url,title,skills")
         .order("first_name", { ascending: true }),
       supabase.from("labels").select("id,slug,name,color_hex").order("name", {
         ascending: true

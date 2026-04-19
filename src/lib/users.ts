@@ -7,6 +7,7 @@ type UpsertUserArgs = {
   lastName: string;
   email: string;
   avatarUrl?: string | null;
+  title?: string | null;
 };
 
 export async function upsertAppUser(args: UpsertUserArgs) {
@@ -19,6 +20,7 @@ export async function upsertAppUser(args: UpsertUserArgs) {
     avatar_url:
       args.avatarUrl ??
       createFallbackAvatarDataUrl(args.firstName, args.lastName, args.email),
+    title: args.title ?? null,
     last_login_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
@@ -26,7 +28,7 @@ export async function upsertAppUser(args: UpsertUserArgs) {
   const { data, error } = await supabase
     .from("app_users")
     .upsert(payload, { onConflict: "webex_person_id" })
-    .select("id,first_name,last_name,email,avatar_url")
+    .select("id,first_name,last_name,email,avatar_url,title,skills")
     .single();
 
   if (error || !data) {
@@ -40,7 +42,7 @@ export async function getEngineers() {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("app_users")
-    .select("id,first_name,last_name,email,avatar_url")
+    .select("id,first_name,last_name,email,avatar_url,title,skills")
     .order("first_name", { ascending: true });
 
   if (error) {

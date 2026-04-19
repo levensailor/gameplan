@@ -36,6 +36,8 @@ export type EngineerSummary = {
   last_name: string;
   email: string;
   avatar_url: string | null;
+  title: string | null;
+  skills: string | null;
 };
 
 export type CardLabel = {
