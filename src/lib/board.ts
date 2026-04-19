@@ -4,7 +4,14 @@ import type { BoardSnapshot } from "@/lib/types";
 export async function getBoardSnapshot(): Promise<BoardSnapshot> {
   const supabase = getSupabaseServerClient();
 
-  const [columnsRes, cardsRes, engineersRes, labelsRes, assignmentsRes] =
+  const [
+    columnsRes,
+    cardsRes,
+    engineersRes,
+    labelsRes,
+    assignmentsRes,
+    cardLabelsRes
+  ] =
     await Promise.all([
       supabase
         .from("planner_columns")
@@ -23,7 +30,8 @@ export async function getBoardSnapshot(): Promise<BoardSnapshot> {
       supabase.from("labels").select("id,slug,name,color_hex").order("name", {
         ascending: true
       }),
-      supabase.from("card_engineers").select("card_id,engineer_id")
+      supabase.from("card_engineers").select("card_id,engineer_id"),
+      supabase.from("card_labels").select("card_id,label_id")
     ]);
 
   if (
@@ -31,7 +39,8 @@ export async function getBoardSnapshot(): Promise<BoardSnapshot> {
     cardsRes.error ||
     engineersRes.error ||
     labelsRes.error ||
-    assignmentsRes.error
+    assignmentsRes.error ||
+    cardLabelsRes.error
   ) {
     throw new Error(
       [
@@ -39,7 +48,8 @@ export async function getBoardSnapshot(): Promise<BoardSnapshot> {
         cardsRes.error?.message,
         engineersRes.error?.message,
         labelsRes.error?.message,
-        assignmentsRes.error?.message
+        assignmentsRes.error?.message,
+        cardLabelsRes.error?.message
       ]
         .filter(Boolean)
         .join("; ")
@@ -51,6 +61,7 @@ export async function getBoardSnapshot(): Promise<BoardSnapshot> {
     cards: cardsRes.data ?? [],
     engineers: engineersRes.data ?? [],
     labels: labelsRes.data ?? [],
-    assignments: assignmentsRes.data ?? []
+    assignments: assignmentsRes.data ?? [],
+    cardLabels: cardLabelsRes.data ?? []
   };
 }

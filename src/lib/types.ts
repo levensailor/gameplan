@@ -52,10 +52,16 @@ export type CardAssignment = {
   engineer_id: string;
 };
 
+export type CardLabelAssignment = {
+  card_id: string;
+  label_id: string;
+};
+
 export type BoardSnapshot = {
   columns: PlannerColumn[];
   cards: PlannerCard[];
   engineers: EngineerSummary[];
   labels: CardLabel[];
   assignments: CardAssignment[];
+  cardLabels: CardLabelAssignment[];
 };

@@ -6,7 +6,11 @@ import { CardItem } from "@/components/board/CardItem";
 import { CardModal } from "@/components/board/CardModal";
 import { EngineerBar } from "@/components/layout/EngineerBar";
 import { createFallbackAvatarDataUrl } from "@/lib/avatar";
-import type { BoardSnapshot, PlannerCard } from "@/lib/types";
+import type {
+  BoardSnapshot,
+  CardLabel,
+  PlannerCard
+} from "@/lib/types";
 
 type Props = {
   initialData: BoardSnapshot;
@@ -15,7 +19,9 @@ type Props = {
 export function Board({ initialData }: Props) {
   const [cards, setCards] = useState(initialData.cards);
   const [engineers, setEngineers] = useState(initialData.engineers);
+  const [labels, setLabels] = useState(initialData.labels);
   const [assignments, setAssignments] = useState(initialData.assignments);
+  const [cardLabels, setCardLabels] = useState(initialData.cardLabels);
   const [activeCard, setActiveCard] = useState<PlannerCard | null>(null);
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
 
@@ -51,6 +57,21 @@ export function Board({ initialData }: Props) {
     }
     return map;
   }, [assignments, engineers]);
+
+  const labelsByCard = useMemo(() => {
+    const labelsById = new Map(labels.map((label) => [label.id, label]));
+    const map = new Map<string, CardLabel[]>();
+    for (const item of cardLabels) {
+      const label = labelsById.get(item.label_id);
+      if (!label) {
+        continue;
+      }
+      const existing = map.get(item.card_id) ?? [];
+      existing.push(label);
+      map.set(item.card_id, existing);
+    }
+    return map;
+  }, [cardLabels, labels]);
 
   async function addCard(columnId: string) {
     const name = window.prompt("Card name");
@@ -194,6 +215,66 @@ export function Board({ initialData }: Props) {
     );
   }
 
+  async function addLabelToCard(cardId: string, labelId: string) {
+    const response = await fetch(`/api/cards/${cardId}/labels`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ labelId, action: "add" })
+    });
+    if (!response.ok) {
+      const payload = (await response.json()) as { error?: string };
+      throw new Error(payload.error ?? "Failed to add label");
+    }
+    setCardLabels((prev) => {
+      const exists = prev.some(
+        (item) => item.card_id === cardId && item.label_id === labelId
+      );
+      if (exists) {
+        return prev;
+      }
+      return [...prev, { card_id: cardId, label_id: labelId }];
+    });
+  }
+
+  async function removeLabelFromCard(cardId: string, labelId: string) {
+    const response = await fetch(`/api/cards/${cardId}/labels`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ labelId, action: "remove" })
+    });
+    if (!response.ok) {
+      const payload = (await response.json()) as { error?: string };
+      throw new Error(payload.error ?? "Failed to remove label");
+    }
+    setCardLabels((prev) =>
+      prev.filter(
+        (item) => !(item.card_id === cardId && item.label_id === labelId)
+      )
+    );
+  }
+
+  async function createLabel(name: string): Promise<CardLabel> {
+    const response = await fetch("/api/labels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name })
+    });
+    const payload = (await response.json()) as {
+      label?: CardLabel;
+      error?: string;
+    };
+    if (!response.ok || !payload.label) {
+      throw new Error(payload.error ?? "Failed to create label");
+    }
+    setLabels((prev) => {
+      const filtered = prev.filter((item) => item.id !== payload.label?.id);
+      return [...filtered, payload.label as CardLabel].sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+    });
+    return payload.label;
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <section className="flex min-h-0 flex-1 gap-4 overflow-x-auto pb-24">
@@ -220,6 +301,7 @@ export function Board({ initialData }: Props) {
                   <CardItem
                     key={card.id}
                     card={card}
+                    labels={labelsByCard.get(card.id) ?? []}
                     assignedEngineers={engineersByCard.get(card.id) ?? []}
                     hasFiles={false}
                     onCardDragStart={setDraggedCardId}
@@ -245,7 +327,24 @@ export function Board({ initialData }: Props) {
         })}
 
         {activeCard ? (
-          <CardModal card={activeCard} onClose={() => setActiveCard(null)} />
+          <CardModal
+            card={activeCard}
+            labels={labels}
+            activeLabelIds={
+              cardLabels
+                .filter((item) => item.card_id === activeCard.id)
+                .map((item) => item.label_id) ?? []
+            }
+            onAddLabel={(labelId) => addLabelToCard(activeCard.id, labelId)}
+            onRemoveLabel={(labelId) =>
+              removeLabelFromCard(activeCard.id, labelId)
+            }
+            onCreateLabel={async (name) => {
+              const label = await createLabel(name);
+              await addLabelToCard(activeCard.id, label.id);
+            }}
+            onClose={() => setActiveCard(null)}
+          />
         ) : null}
       </section>
       <EngineerBar

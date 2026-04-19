@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { FaPaperclip, FaTrash } from "react-icons/fa";
-import type { PlannerCard } from "@/lib/types";
+import type { CardLabel, PlannerCard } from "@/lib/types";
 
 type AssignedEngineer = {
   engineerId: string;
@@ -12,6 +12,7 @@ type AssignedEngineer = {
 
 type Props = {
   card: PlannerCard;
+  labels: CardLabel[];
   assignedEngineers: AssignedEngineer[];
   hasFiles: boolean;
   onCardDragStart: (cardId: string) => void;
@@ -27,6 +28,7 @@ type Props = {
 
 export function CardItem({
   card,
+  labels,
   assignedEngineers,
   hasFiles,
   onCardDragStart,
@@ -82,6 +84,19 @@ export function CardItem({
           <FaTrash className="h-3.5 w-3.5" />
         </button>
       </div>
+      {labels.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {labels.map((label) => (
+            <span
+              key={`${card.id}:${label.id}`}
+              className="rounded-full border border-slate-600 px-2 py-0.5 text-[10px] uppercase tracking-wide text-slate-200"
+              style={{ backgroundColor: `${label.color_hex}33` }}
+            >
+              {label.name}
+            </span>
+          ))}
+        </div>
+      ) : null}
       <div className="mt-2 flex items-center gap-2 text-xs text-slate-300">
         <div className="flex items-center gap-1">
           {assignedEngineers.map((engineer) => (

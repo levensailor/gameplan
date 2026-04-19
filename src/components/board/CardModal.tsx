@@ -2,14 +2,27 @@
 
 import { useState } from "react";
 import { PmAutocomplete } from "@/components/board/PmAutocomplete";
-import type { PlannerCard } from "@/lib/types";
+import type { CardLabel, PlannerCard } from "@/lib/types";
 
 type Props = {
   card: PlannerCard;
+  labels: CardLabel[];
+  activeLabelIds: string[];
+  onAddLabel: (labelId: string) => Promise<void>;
+  onRemoveLabel: (labelId: string) => Promise<void>;
+  onCreateLabel: (name: string) => Promise<void>;
   onClose: () => void;
 };
 
-export function CardModal({ card, onClose }: Props) {
+export function CardModal({
+  card,
+  labels,
+  activeLabelIds,
+  onAddLabel,
+  onRemoveLabel,
+  onCreateLabel,
+  onClose
+}: Props) {
   const [form, setForm] = useState({
     name: card.name,
     description: card.description ?? "",
@@ -21,6 +34,14 @@ export function CardModal({ card, onClose }: Props) {
     notes: card.notes ?? "",
     dueDate: card.due_date?.slice(0, 10) ?? ""
   });
+  const [showAddLabel, setShowAddLabel] = useState(false);
+  const [newLabelName, setNewLabelName] = useState("");
+  const [labelError, setLabelError] = useState<string | null>(null);
+
+  const activeLabels = labels.filter((label) => activeLabelIds.includes(label.id));
+  const availableLabels = labels.filter(
+    (label) => !activeLabelIds.includes(label.id)
+  );
 
   async function save() {
     await fetch(`/api/cards/${card.id}`, {
@@ -52,6 +73,43 @@ export function CardModal({ card, onClose }: Props) {
     onClose();
   }
 
+  async function addExistingLabel(labelId: string) {
+    setLabelError(null);
+    try {
+      await onAddLabel(labelId);
+    } catch (error) {
+      setLabelError(error instanceof Error ? error.message : "Failed to add label");
+    }
+  }
+
+  async function removeExistingLabel(labelId: string) {
+    setLabelError(null);
+    try {
+      await onRemoveLabel(labelId);
+    } catch (error) {
+      setLabelError(
+        error instanceof Error ? error.message : "Failed to remove label"
+      );
+    }
+  }
+
+  async function createNewLabel() {
+    const trimmed = newLabelName.trim();
+    if (!trimmed) {
+      return;
+    }
+    setLabelError(null);
+    try {
+      await onCreateLabel(trimmed);
+      setNewLabelName("");
+      setShowAddLabel(false);
+    } catch (error) {
+      setLabelError(
+        error instanceof Error ? error.message : "Failed to create label"
+      );
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
       <div className="w-full max-w-3xl rounded-lg border border-slate-700 bg-slate-900 p-4">
@@ -62,6 +120,77 @@ export function CardModal({ card, onClose }: Props) {
           </button>
         </div>
         <div className="mt-4 grid gap-3">
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-300">Labels</span>
+              <button
+                type="button"
+                onClick={() => setShowAddLabel((prev) => !prev)}
+                className="rounded-full border border-slate-600 px-3 py-1 text-xs text-slate-200 hover:border-slate-400"
+              >
+                Add label
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {activeLabels.length > 0 ? (
+                activeLabels.map((label) => (
+                  <button
+                    key={label.id}
+                    type="button"
+                    onClick={() => void removeExistingLabel(label.id)}
+                    className="rounded-full border border-slate-600 px-3 py-1 text-xs text-slate-100"
+                    style={{ backgroundColor: `${label.color_hex}33` }}
+                    title="Click to remove"
+                  >
+                    {label.name} x
+                  </button>
+                ))
+              ) : (
+                <span className="text-xs text-slate-500">No labels selected</span>
+              )}
+            </div>
+            {showAddLabel ? (
+              <div className="rounded-md border border-slate-700 bg-slate-900/80 p-3">
+                <div className="flex flex-wrap gap-2">
+                  {availableLabels.length > 0 ? (
+                    availableLabels.map((label) => (
+                      <button
+                        key={label.id}
+                        type="button"
+                        onClick={() => void addExistingLabel(label.id)}
+                        className="rounded-full border border-slate-600 px-3 py-1 text-xs text-slate-200 hover:border-slate-400"
+                      >
+                        {label.name}
+                      </button>
+                    ))
+                  ) : (
+                    <span className="text-xs text-slate-500">
+                      All existing labels are already on this card.
+                    </span>
+                  )}
+                </div>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <input
+                    value={newLabelName}
+                    onChange={(event) => setNewLabelName(event.target.value)}
+                    placeholder="Create new label"
+                    className="flex-1 rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void createNewLabel()}
+                    className="rounded-md bg-sky-500 px-3 py-2 text-sm font-semibold text-slate-950"
+                  >
+                    Create
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            {labelError ? (
+              <p className="text-xs text-red-300">{labelError}</p>
+            ) : null}
+          </div>
+
           <label className="grid gap-1 text-sm">
             <span className="text-slate-300">Name</span>
             <input
