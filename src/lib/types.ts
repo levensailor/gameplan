@@ -57,6 +57,22 @@ export type CardLabelAssignment = {
   label_id: string;
 };
 
+export type CardFile = {
+  id: string;
+  card_id: string;
+  file_name: string;
+  storage_path: string;
+  created_at: string;
+};
+
+export type CardLink = {
+  id: string;
+  card_id: string;
+  title: string;
+  url: string;
+  created_at: string;
+};
+
 export type BoardSnapshot = {
   columns: PlannerColumn[];
   cards: PlannerCard[];
@@ -64,4 +80,6 @@ export type BoardSnapshot = {
   labels: CardLabel[];
   assignments: CardAssignment[];
   cardLabels: CardLabelAssignment[];
+  cardFiles: CardFile[];
+  cardLinks: CardLink[];
 };

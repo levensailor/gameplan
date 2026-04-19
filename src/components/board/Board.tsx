@@ -22,6 +22,8 @@ export function Board({ initialData }: Props) {
   const [labels, setLabels] = useState(initialData.labels);
   const [assignments, setAssignments] = useState(initialData.assignments);
   const [cardLabels, setCardLabels] = useState(initialData.cardLabels);
+  const [cardFiles, setCardFiles] = useState(initialData.cardFiles);
+  const [cardLinks, setCardLinks] = useState(initialData.cardLinks);
   const [activeCard, setActiveCard] = useState<PlannerCard | null>(null);
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
 
@@ -73,6 +75,17 @@ export function Board({ initialData }: Props) {
     return map;
   }, [cardLabels, labels]);
 
+  const hasAttachmentsByCard = useMemo(() => {
+    const map = new Map<string, boolean>();
+    for (const file of cardFiles) {
+      map.set(file.card_id, true);
+    }
+    for (const link of cardLinks) {
+      map.set(link.card_id, true);
+    }
+    return map;
+  }, [cardFiles, cardLinks]);
+
   async function addCard(columnId: string) {
     const name = window.prompt("Card name");
     if (!name) {
@@ -98,6 +111,8 @@ export function Board({ initialData }: Props) {
     }
     await fetch(`/api/cards/${cardId}`, { method: "DELETE" });
     setCards((prev) => prev.filter((card) => card.id !== cardId));
+    setCardFiles((prev) => prev.filter((item) => item.card_id !== cardId));
+    setCardLinks((prev) => prev.filter((item) => item.card_id !== cardId));
   }
 
   async function moveCardToColumn(columnId: string) {
@@ -303,7 +318,7 @@ export function Board({ initialData }: Props) {
                     card={card}
                     labels={labelsByCard.get(card.id) ?? []}
                     assignedEngineers={engineersByCard.get(card.id) ?? []}
-                    hasFiles={false}
+                    hasFiles={hasAttachmentsByCard.get(card.id) ?? false}
                     onCardDragStart={setDraggedCardId}
                     onEngineerDrop={(cardId, engineerId, sourceCardId) =>
                       void handleEngineerDropOnCard(cardId, engineerId, sourceCardId)
@@ -342,6 +357,23 @@ export function Board({ initialData }: Props) {
             onCreateLabel={async (name) => {
               const label = await createLabel(name);
               await addLabelToCard(activeCard.id, label.id);
+            }}
+            onAttachmentChanged={async () => {
+              const response = await fetch(`/api/cards/${activeCard.id}/attachments`);
+              const payload = (await response.json()) as {
+                files?: (typeof initialData.cardFiles)[number][];
+                links?: (typeof initialData.cardLinks)[number][];
+              };
+              if (response.ok) {
+                setCardFiles((prev) => [
+                  ...prev.filter((item) => item.card_id !== activeCard.id),
+                  ...(payload.files ?? [])
+                ]);
+                setCardLinks((prev) => [
+                  ...prev.filter((item) => item.card_id !== activeCard.id),
+                  ...(payload.links ?? [])
+                ]);
+              }
             }}
             onClose={() => setActiveCard(null)}
           />

@@ -10,7 +10,9 @@ export async function getBoardSnapshot(): Promise<BoardSnapshot> {
     engineersRes,
     labelsRes,
     assignmentsRes,
-    cardLabelsRes
+    cardLabelsRes,
+    cardFilesRes,
+    cardLinksRes
   ] =
     await Promise.all([
       supabase
@@ -31,7 +33,11 @@ export async function getBoardSnapshot(): Promise<BoardSnapshot> {
         ascending: true
       }),
       supabase.from("card_engineers").select("card_id,engineer_id"),
-      supabase.from("card_labels").select("card_id,label_id")
+      supabase.from("card_labels").select("card_id,label_id"),
+      supabase
+        .from("card_files")
+        .select("id,card_id,file_name,storage_path,created_at"),
+      supabase.from("card_links").select("id,card_id,title,url,created_at")
     ]);
 
   if (
@@ -40,7 +46,9 @@ export async function getBoardSnapshot(): Promise<BoardSnapshot> {
     engineersRes.error ||
     labelsRes.error ||
     assignmentsRes.error ||
-    cardLabelsRes.error
+    cardLabelsRes.error ||
+    cardFilesRes.error ||
+    cardLinksRes.error
   ) {
     throw new Error(
       [
@@ -49,7 +57,9 @@ export async function getBoardSnapshot(): Promise<BoardSnapshot> {
         engineersRes.error?.message,
         labelsRes.error?.message,
         assignmentsRes.error?.message,
-        cardLabelsRes.error?.message
+        cardLabelsRes.error?.message,
+        cardFilesRes.error?.message,
+        cardLinksRes.error?.message
       ]
         .filter(Boolean)
         .join("; ")
@@ -62,6 +72,8 @@ export async function getBoardSnapshot(): Promise<BoardSnapshot> {
     engineers: engineersRes.data ?? [],
     labels: labelsRes.data ?? [],
     assignments: assignmentsRes.data ?? [],
-    cardLabels: cardLabelsRes.data ?? []
+    cardLabels: cardLabelsRes.data ?? [],
+    cardFiles: cardFilesRes.data ?? [],
+    cardLinks: cardLinksRes.data ?? []
   };
 }

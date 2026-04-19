@@ -1,8 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PmAutocomplete } from "@/components/board/PmAutocomplete";
 import type { CardLabel, PlannerCard } from "@/lib/types";
+
+type CardFileAttachment = {
+  id: string;
+  card_id: string;
+  file_name: string;
+  storage_path: string;
+  created_at: string;
+  url: string;
+};
+
+type CardLinkAttachment = {
+  id: string;
+  card_id: string;
+  title: string;
+  url: string;
+  created_at: string;
+};
 
 type Props = {
   card: PlannerCard;
@@ -11,6 +28,7 @@ type Props = {
   onAddLabel: (labelId: string) => Promise<void>;
   onRemoveLabel: (labelId: string) => Promise<void>;
   onCreateLabel: (name: string) => Promise<void>;
+  onAttachmentChanged: () => Promise<void>;
   onClose: () => void;
 };
 
@@ -21,6 +39,7 @@ export function CardModal({
   onAddLabel,
   onRemoveLabel,
   onCreateLabel,
+  onAttachmentChanged,
   onClose
 }: Props) {
   const [form, setForm] = useState({
@@ -37,11 +56,42 @@ export function CardModal({
   const [showAddLabel, setShowAddLabel] = useState(false);
   const [newLabelName, setNewLabelName] = useState("");
   const [labelError, setLabelError] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<{
+    files: CardFileAttachment[];
+    links: CardLinkAttachment[];
+  }>({ files: [], links: [] });
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [linkTitle, setLinkTitle] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [isAddingLink, setIsAddingLink] = useState(false);
 
   const activeLabels = labels.filter((label) => activeLabelIds.includes(label.id));
   const availableLabels = labels.filter(
     (label) => !activeLabelIds.includes(label.id)
   );
+
+  useEffect(() => {
+    async function loadAttachments() {
+      setAttachmentError(null);
+      const response = await fetch(`/api/cards/${card.id}/attachments`);
+      const payload = (await response.json()) as {
+        files?: CardFileAttachment[];
+        links?: CardLinkAttachment[];
+        error?: string;
+      };
+      if (!response.ok) {
+        setAttachmentError(payload.error ?? "Failed to load attachments");
+        return;
+      }
+      setAttachments({
+        files: payload.files ?? [],
+        links: payload.links ?? []
+      });
+    }
+
+    void loadAttachments();
+  }, [card.id]);
 
   async function save() {
     await fetch(`/api/cards/${card.id}`, {
@@ -106,6 +156,103 @@ export function CardModal({
     } catch (error) {
       setLabelError(
         error instanceof Error ? error.message : "Failed to create label"
+      );
+    }
+  }
+
+  async function uploadAttachment(file: File) {
+    setAttachmentError(null);
+    setIsUploadingFile(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch(`/api/cards/${card.id}/attachments`, {
+        method: "POST",
+        body: formData
+      });
+      const payload = (await response.json()) as {
+        files?: CardFileAttachment[];
+        links?: CardLinkAttachment[];
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Failed to upload file");
+      }
+      setAttachments({
+        files: payload.files ?? [],
+        links: payload.links ?? []
+      });
+      await onAttachmentChanged();
+    } catch (error) {
+      setAttachmentError(
+        error instanceof Error ? error.message : "Failed to upload file"
+      );
+    } finally {
+      setIsUploadingFile(false);
+    }
+  }
+
+  async function addLinkAttachment() {
+    if (!linkUrl.trim()) {
+      return;
+    }
+    setAttachmentError(null);
+    setIsAddingLink(true);
+    try {
+      const response = await fetch(`/api/cards/${card.id}/attachments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: linkTitle.trim() || undefined,
+          url: linkUrl.trim()
+        })
+      });
+      const payload = (await response.json()) as {
+        files?: CardFileAttachment[];
+        links?: CardLinkAttachment[];
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Failed to add link");
+      }
+      setAttachments({
+        files: payload.files ?? [],
+        links: payload.links ?? []
+      });
+      setLinkTitle("");
+      setLinkUrl("");
+      await onAttachmentChanged();
+    } catch (error) {
+      setAttachmentError(error instanceof Error ? error.message : "Failed to add link");
+    } finally {
+      setIsAddingLink(false);
+    }
+  }
+
+  async function removeAttachment(type: "file" | "link", id: string) {
+    setAttachmentError(null);
+    try {
+      const response = await fetch(`/api/cards/${card.id}/attachments`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, id })
+      });
+      const payload = (await response.json()) as {
+        files?: CardFileAttachment[];
+        links?: CardLinkAttachment[];
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Failed to remove attachment");
+      }
+      setAttachments({
+        files: payload.files ?? [],
+        links: payload.links ?? []
+      });
+      await onAttachmentChanged();
+    } catch (error) {
+      setAttachmentError(
+        error instanceof Error ? error.message : "Failed to remove attachment"
       );
     }
   }
@@ -195,6 +342,108 @@ export function CardModal({
             ) : null}
             {labelError ? (
               <p className="text-xs text-red-300">{labelError}</p>
+            ) : null}
+          </div>
+
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-300">Add attachments</span>
+            </div>
+            <div className="rounded-md border border-slate-700 bg-slate-900/80 p-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <label className="inline-flex cursor-pointer items-center justify-center rounded-md border border-slate-600 px-3 py-2 text-xs text-slate-200 hover:border-slate-400">
+                  {isUploadingFile ? "Uploading..." : "Upload file"}
+                  <input
+                    type="file"
+                    className="hidden"
+                    disabled={isUploadingFile}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) {
+                        void uploadAttachment(file);
+                      }
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </label>
+                <span className="text-xs text-slate-500">or add a file URL</span>
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <input
+                  value={linkTitle}
+                  onChange={(event) => setLinkTitle(event.target.value)}
+                  placeholder="Link title (optional)"
+                  className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm"
+                />
+                <input
+                  value={linkUrl}
+                  onChange={(event) => setLinkUrl(event.target.value)}
+                  placeholder="https://example.com/file.pdf"
+                  className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => void addLinkAttachment()}
+                disabled={isAddingLink}
+                className="mt-2 rounded-md bg-sky-500 px-3 py-2 text-xs font-semibold text-slate-950 disabled:opacity-60"
+              >
+                {isAddingLink ? "Adding..." : "Add URL"}
+              </button>
+
+              {attachments.files.length > 0 || attachments.links.length > 0 ? (
+                <div className="mt-3 grid gap-2">
+                  {attachments.files.map((file) => (
+                    <div
+                      key={file.id}
+                      className="flex items-center justify-between rounded-md border border-slate-700 px-3 py-2 text-xs"
+                    >
+                      <a
+                        href={file.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="truncate text-sky-300 hover:text-sky-200"
+                      >
+                        {file.file_name}
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => void removeAttachment("file", file.id)}
+                        className="text-red-300 hover:text-red-200"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  {attachments.links.map((link) => (
+                    <div
+                      key={link.id}
+                      className="flex items-center justify-between rounded-md border border-slate-700 px-3 py-2 text-xs"
+                    >
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="truncate text-sky-300 hover:text-sky-200"
+                      >
+                        {link.title}
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => void removeAttachment("link", link.id)}
+                        className="text-red-300 hover:text-red-200"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-slate-500">No attachments yet.</p>
+              )}
+            </div>
+            {attachmentError ? (
+              <p className="text-xs text-red-300">{attachmentError}</p>
             ) : null}
           </div>
 
