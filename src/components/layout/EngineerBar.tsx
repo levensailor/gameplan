@@ -184,8 +184,8 @@ export function EngineerBar({
       ) : null}
 
       {activeEngineer ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md -translate-y-14 rounded-lg border border-slate-700 bg-slate-900 p-4 sm:-translate-y-20">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/60 p-4 pt-6 backdrop-blur-sm sm:pt-10">
+          <div className="my-2 max-h-[calc(100vh-4rem)] w-full max-w-md overflow-y-auto rounded-lg border border-slate-700 bg-slate-900 p-4 sm:max-h-[calc(100vh-6rem)]">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">Engineer Profile</h3>
               <button
