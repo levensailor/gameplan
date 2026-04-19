@@ -23,23 +23,31 @@ export function Board({ initialData }: Props) {
     void fetch("/api/webex/directory?sync=1");
   }, []);
 
-  const engineerByCard = useMemo(() => {
-    const map = new Map<string, string | null>();
+  const engineersByCard = useMemo(() => {
+    const map = new Map<
+      string,
+      { engineerId: string; avatarUrl: string; label: string }[]
+    >();
     for (const assignment of assignments) {
       const engineer = engineers.find(
         (item) => item.id === assignment.engineer_id
       );
-      map.set(
-        assignment.card_id,
-        engineer
-          ? engineer.avatar_url ??
-              createFallbackAvatarDataUrl(
-                engineer.first_name,
-                engineer.last_name,
-                engineer.email
-              )
-          : null
-      );
+      if (!engineer) {
+        continue;
+      }
+      const existing = map.get(assignment.card_id) ?? [];
+      existing.push({
+        engineerId: engineer.id,
+        avatarUrl:
+          engineer.avatar_url ??
+          createFallbackAvatarDataUrl(
+            engineer.first_name,
+            engineer.last_name,
+            engineer.email
+          ),
+        label: `${engineer.first_name} ${engineer.last_name}`.trim()
+      });
+      map.set(assignment.card_id, existing);
     }
     return map;
   }, [assignments, engineers]);
@@ -97,12 +105,38 @@ export function Board({ initialData }: Props) {
     await fetch(`/api/cards/${cardId}/assign`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ engineerId })
+      body: JSON.stringify({ engineerId, action: "assign" })
     });
     setAssignments((prev) => [
-      ...prev.filter((item) => item.card_id !== cardId),
+      ...prev.filter(
+        (item) => !(item.card_id === cardId && item.engineer_id === engineerId)
+      ),
       { card_id: cardId, engineer_id: engineerId }
     ]);
+  }
+
+  async function unassignEngineer(cardId: string, engineerId: string) {
+    await fetch(`/api/cards/${cardId}/assign`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ engineerId, action: "remove" })
+    });
+    setAssignments((prev) =>
+      prev.filter(
+        (item) => !(item.card_id === cardId && item.engineer_id === engineerId)
+      )
+    );
+  }
+
+  async function handleEngineerDropOnCard(
+    targetCardId: string,
+    engineerId: string,
+    sourceCardId?: string
+  ) {
+    if (sourceCardId && sourceCardId !== targetCardId) {
+      await unassignEngineer(sourceCardId, engineerId);
+    }
+    await assignEngineer(targetCardId, engineerId);
   }
 
   async function addEngineerByEmail(email: string) {
@@ -161,12 +195,13 @@ export function Board({ initialData }: Props) {
                   <CardItem
                     key={card.id}
                     card={card}
-                    engineerAvatar={engineerByCard.get(card.id)}
+                    assignedEngineers={engineersByCard.get(card.id) ?? []}
                     hasFiles={false}
                     onCardDragStart={setDraggedCardId}
-                    onEngineerDrop={(cardId, engineerId) =>
-                      void assignEngineer(cardId, engineerId)
+                    onEngineerDrop={(cardId, engineerId, sourceCardId) =>
+                      void handleEngineerDropOnCard(cardId, engineerId, sourceCardId)
                     }
+                    onAssignedEngineerDragStart={() => undefined}
                     onSelect={() => setActiveCard(card)}
                     onDelete={() => void deleteCard(card.id)}
                   />
@@ -188,7 +223,11 @@ export function Board({ initialData }: Props) {
           <CardModal card={activeCard} onClose={() => setActiveCard(null)} />
         ) : null}
       </section>
-      <EngineerBar engineers={engineers} onAddEngineer={addEngineerByEmail} />
+      <EngineerBar
+        engineers={engineers}
+        onAddEngineer={addEngineerByEmail}
+        onUnassignEngineer={unassignEngineer}
+      />
     </div>
   );
 }

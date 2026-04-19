@@ -23,5 +23,6 @@ export const moveCardSchema = z.object({
 });
 
 export const assignCardSchema = z.object({
-  engineerId: z.string().uuid().nullable()
+  engineerId: z.string().uuid(),
+  action: z.enum(["assign", "remove", "replace"]).default("assign")
 });

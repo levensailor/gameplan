@@ -13,32 +13,46 @@ export async function POST(request: Request, context: RouteContext) {
     const payload = assignCardSchema.parse(await request.json());
     const supabase = getSupabaseServerClient();
 
-    const { data: existingAssignment } = await supabase
+    const { data: existingAssignments } = await supabase
       .from("card_engineers")
       .select("engineer_id")
-      .eq("card_id", id)
-      .maybeSingle();
+      .eq("card_id", id);
 
-    if (payload.engineerId) {
+    if (payload.action === "replace") {
       await supabase.from("card_engineers").delete().eq("card_id", id);
-      const { error } = await supabase.from("card_engineers").insert({
-        card_id: id,
-        engineer_id: payload.engineerId,
-        assigned_by: session.userId
-      });
+    }
+
+    if (payload.action === "remove") {
+      const { error } = await supabase
+        .from("card_engineers")
+        .delete()
+        .eq("card_id", id)
+        .eq("engineer_id", payload.engineerId);
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 400 });
       }
     } else {
-      await supabase.from("card_engineers").delete().eq("card_id", id);
+      const { error } = await supabase.from("card_engineers").upsert(
+        {
+          card_id: id,
+          engineer_id: payload.engineerId,
+          assigned_by: session.userId
+        },
+        { onConflict: "card_id,engineer_id" }
+      );
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
     }
 
     await insertHistoryEvent({
       cardId: id,
       actorUserId: session.userId,
-      eventType: payload.engineerId ? "engineer_assigned" : "engineer_removed",
-      previousEngineerId: existingAssignment?.engineer_id ?? null,
-      newEngineerId: payload.engineerId ?? null
+      eventType: payload.action === "remove" ? "engineer_removed" : "engineer_assigned",
+      previousEngineerId:
+        existingAssignments?.find((item) => item.engineer_id === payload.engineerId)
+          ?.engineer_id ?? null,
+      newEngineerId: payload.action === "remove" ? null : payload.engineerId
     });
 
     return NextResponse.json({ ok: true });
