@@ -54,7 +54,7 @@ export function CardModal({ card, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-lg border border-slate-700 bg-slate-900 p-5">
+      <div className="w-full max-w-3xl rounded-lg border border-slate-700 bg-slate-900 p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Edit Card</h2>
           <button onClick={onClose} type="button" className="text-sm text-slate-300">
@@ -62,67 +62,121 @@ export function CardModal({ card, onClose }: Props) {
           </button>
         </div>
         <div className="mt-4 grid gap-3">
-          {[
-            ["Name", "name"],
-            ["Description", "description"],
-            ["Customer Name", "customerName"],
-            ["Project Code", "projectCode"],
-            ["Engineering Hours", "engineeringHours"],
-            ["Notes", "notes"]
-          ].map(([label, key]) => (
-            <label key={key} className="grid gap-1 text-sm">
-              <span className="text-slate-300">{label}</span>
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-300">Name</span>
+            <input
+              value={form.name}
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, name: event.target.value }))
+              }
+              className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2"
+            />
+          </label>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="grid gap-1 text-sm">
+              <span className="text-slate-300">Project Code</span>
               <input
-                value={form[key as keyof typeof form]}
+                value={form.projectCode}
                 onChange={(event) =>
-                  setForm((prev) => ({ ...prev, [key]: event.target.value }))
+                  setForm((prev) => ({ ...prev, projectCode: event.target.value }))
                 }
                 className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2"
               />
             </label>
-          ))}
+            <label className="grid gap-1 text-sm">
+              <span className="text-slate-300">Engineering Hours</span>
+              <input
+                value={form.engineeringHours}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    engineeringHours: event.target.value
+                  }))
+                }
+                className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2"
+              />
+            </label>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="grid gap-1 text-sm">
+              <span className="text-slate-300">Project Manager</span>
+              <PmAutocomplete
+                value={form.projectManagerName}
+                onSelect={(name, email) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    projectManagerName: name,
+                    projectManagerEmail: email
+                  }))
+                }
+              />
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span className="text-slate-300">PM Email</span>
+              <input
+                value={form.projectManagerEmail}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    projectManagerEmail: event.target.value
+                  }))
+                }
+                className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2"
+              />
+            </label>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="grid gap-1 text-sm">
+              <span className="text-slate-300">Customer Name</span>
+              <input
+                value={form.customerName}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, customerName: event.target.value }))
+                }
+                className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2"
+              />
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span className="text-slate-300">Due Date</span>
+              <input
+                type="date"
+                value={form.dueDate}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, dueDate: event.target.value }))
+                }
+                className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2"
+              />
+            </label>
+          </div>
 
           <label className="grid gap-1 text-sm">
-            <span className="text-slate-300">Project Manager</span>
-            <PmAutocomplete
-              value={form.projectManagerName}
-              onSelect={(name, email) =>
-                setForm((prev) => ({
-                  ...prev,
-                  projectManagerName: name,
-                  projectManagerEmail: email
-                }))
-              }
-            />
-          </label>
-
-          <label className="grid gap-1 text-sm">
-            <span className="text-slate-300">PM Email</span>
-            <input
-              value={form.projectManagerEmail}
+            <span className="text-slate-300">Description</span>
+            <textarea
+              value={form.description}
               onChange={(event) =>
-                setForm((prev) => ({
-                  ...prev,
-                  projectManagerEmail: event.target.value
-                }))
+                setForm((prev) => ({ ...prev, description: event.target.value }))
               }
+              rows={3}
               className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2"
             />
           </label>
 
           <label className="grid gap-1 text-sm">
-            <span className="text-slate-300">Due Date</span>
-            <input
-              type="date"
-              value={form.dueDate}
+            <span className="text-slate-300">Notes</span>
+            <textarea
+              value={form.notes}
               onChange={(event) =>
-                setForm((prev) => ({ ...prev, dueDate: event.target.value }))
+                setForm((prev) => ({ ...prev, notes: event.target.value }))
               }
+              rows={3}
               className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2"
             />
           </label>
         </div>
-        <div className="mt-5 flex justify-between">
+        <div className="mt-4 flex justify-between">
           <button
             type="button"
             onClick={removeCard}
