@@ -1,19 +1,22 @@
 import { getSupabaseServerClient } from "@/lib/supabase";
 import type { BoardSnapshot } from "@/lib/types";
+import { logger } from "@/lib/logger";
+
+function isMissingRelationError(message?: string): boolean {
+  if (!message) {
+    return false;
+  }
+  return (
+    message.includes("Could not find the table") ||
+    message.includes("relation") ||
+    message.includes("does not exist")
+  );
+}
 
 export async function getBoardSnapshot(): Promise<BoardSnapshot> {
   const supabase = getSupabaseServerClient();
 
-  const [
-    columnsRes,
-    cardsRes,
-    engineersRes,
-    labelsRes,
-    assignmentsRes,
-    cardLabelsRes,
-    cardFilesRes,
-    cardLinksRes
-  ] =
+  const [columnsRes, cardsRes, engineersRes, labelsRes, assignmentsRes, cardLabelsRes] =
     await Promise.all([
       supabase
         .from("planner_columns")
@@ -33,11 +36,7 @@ export async function getBoardSnapshot(): Promise<BoardSnapshot> {
         ascending: true
       }),
       supabase.from("card_engineers").select("card_id,engineer_id"),
-      supabase.from("card_labels").select("card_id,label_id"),
-      supabase
-        .from("card_files")
-        .select("id,card_id,file_name,storage_path,created_at"),
-      supabase.from("card_links").select("id,card_id,title,url,created_at")
+      supabase.from("card_labels").select("card_id,label_id")
     ]);
 
   if (
@@ -46,9 +45,7 @@ export async function getBoardSnapshot(): Promise<BoardSnapshot> {
     engineersRes.error ||
     labelsRes.error ||
     assignmentsRes.error ||
-    cardLabelsRes.error ||
-    cardFilesRes.error ||
-    cardLinksRes.error
+    cardLabelsRes.error
   ) {
     throw new Error(
       [
@@ -57,13 +54,33 @@ export async function getBoardSnapshot(): Promise<BoardSnapshot> {
         engineersRes.error?.message,
         labelsRes.error?.message,
         assignmentsRes.error?.message,
-        cardLabelsRes.error?.message,
-        cardFilesRes.error?.message,
-        cardLinksRes.error?.message
+        cardLabelsRes.error?.message
       ]
         .filter(Boolean)
         .join("; ")
     );
+  }
+
+  const [cardFilesRes, cardLinksRes] = await Promise.all([
+    supabase
+      .from("card_files")
+      .select("id,card_id,file_name,storage_path,created_at"),
+    supabase.from("card_links").select("id,card_id,title,url,created_at")
+  ]);
+
+  const cardFilesError = cardFilesRes.error?.message;
+  const cardLinksError = cardLinksRes.error?.message;
+  if (cardFilesRes.error && !isMissingRelationError(cardFilesError)) {
+    throw new Error(cardFilesError);
+  }
+  if (cardLinksRes.error && !isMissingRelationError(cardLinksError)) {
+    throw new Error(cardLinksError);
+  }
+  if (cardFilesRes.error || cardLinksRes.error) {
+    logger.warn("Attachment tables unavailable during board snapshot", {
+      cardFilesError,
+      cardLinksError
+    });
   }
 
   return {
@@ -73,7 +90,7 @@ export async function getBoardSnapshot(): Promise<BoardSnapshot> {
     labels: labelsRes.data ?? [],
     assignments: assignmentsRes.data ?? [],
     cardLabels: cardLabelsRes.data ?? [],
-    cardFiles: cardFilesRes.data ?? [],
-    cardLinks: cardLinksRes.data ?? []
+    cardFiles: cardFilesRes.error ? [] : cardFilesRes.data ?? [],
+    cardLinks: cardLinksRes.error ? [] : cardLinksRes.data ?? []
   };
 }
