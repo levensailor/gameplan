@@ -22,6 +22,7 @@ type Props = {
     sourceCardId?: string
   ) => void;
   onAssignedEngineerDragStart: (cardId: string, engineerId: string) => void;
+  onAssignedEngineerDragEnd: () => void;
   onSelect: () => void;
   onDelete: () => void;
 };
@@ -34,11 +35,13 @@ export function CardItem({
   onCardDragStart,
   onEngineerDrop,
   onAssignedEngineerDragStart,
+  onAssignedEngineerDragEnd,
   onSelect,
   onDelete
 }: Props) {
   return (
     <article
+      data-card-drop-zone="true"
       draggable
       onDragStart={() => onCardDragStart(card.id)}
       onDragOver={(event) => {
@@ -117,6 +120,7 @@ export function CardItem({
                 );
                 onAssignedEngineerDragStart(card.id, engineer.engineerId);
               }}
+              onDragEnd={onAssignedEngineerDragEnd}
               className="h-5 w-5 rounded-full border border-slate-600"
             />
           ))}

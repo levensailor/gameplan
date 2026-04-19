@@ -8,7 +8,6 @@ import { createFallbackAvatarDataUrl } from "@/lib/avatar";
 type Props = {
   engineers: EngineerSummary[];
   onAddEngineer: (email: string) => Promise<void>;
-  onUnassignEngineer: (cardId: string, engineerId: string) => Promise<void>;
   onUpdateEngineerProfile: (
     engineerId: string,
     payload: { title: string | null; skills: string | null }
@@ -18,7 +17,6 @@ type Props = {
 export function EngineerBar({
   engineers,
   onAddEngineer,
-  onUnassignEngineer,
   onUpdateEngineerProfile
 }: Props) {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -79,32 +77,6 @@ export function EngineerBar({
       <p className="mb-2 text-xs uppercase tracking-wide text-slate-400">
         Engineers
       </p>
-      <div
-        onDragOver={(event) => {
-          event.preventDefault();
-        }}
-        onDrop={(event) => {
-          event.preventDefault();
-          const payload = event.dataTransfer.getData("application/x-gameplan-assignment");
-          if (!payload) {
-            return;
-          }
-          try {
-            const parsed = JSON.parse(payload) as {
-              engineerId?: string;
-              sourceCardId?: string;
-            };
-            if (parsed.engineerId && parsed.sourceCardId) {
-              void onUnassignEngineer(parsed.sourceCardId, parsed.engineerId);
-            }
-          } catch {
-            // Ignore invalid drop payloads.
-          }
-        }}
-        className="mb-2 rounded-md border border-dashed border-rose-500/50 bg-rose-500/10 px-3 py-1 text-xs text-rose-200"
-      >
-        Drop assigned engineer here to remove from card
-      </div>
       <div className="flex flex-wrap gap-2">
         <button
           type="button"

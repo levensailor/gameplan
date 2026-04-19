@@ -26,10 +26,71 @@ export function Board({ initialData }: Props) {
   const [cardLinks, setCardLinks] = useState(initialData.cardLinks);
   const [activeCard, setActiveCard] = useState<PlannerCard | null>(null);
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
+  const [draggedAssignment, setDraggedAssignment] = useState<{
+    engineerId: string;
+    sourceCardId: string;
+  } | null>(null);
+  const [dropFeedback, setDropFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     void fetch("/api/webex/directory?sync=1");
   }, []);
+
+  useEffect(() => {
+    if (!draggedAssignment) {
+      return;
+    }
+
+    function isDropOnCard(target: EventTarget | null): boolean {
+      return (
+        target instanceof Element &&
+        target.closest('[data-card-drop-zone="true"]') !== null
+      );
+    }
+
+    function handleWindowDragOver(event: DragEvent) {
+      event.preventDefault();
+    }
+
+    function handleWindowDrop(event: DragEvent) {
+      event.preventDefault();
+      const payload =
+        event.dataTransfer?.getData("application/x-gameplan-assignment") ?? "";
+      setDraggedAssignment(null);
+
+      if (!payload || isDropOnCard(event.target)) {
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(payload) as {
+          engineerId?: string;
+          sourceCardId?: string;
+        };
+        if (parsed.engineerId && parsed.sourceCardId) {
+          void unassignEngineer(parsed.sourceCardId, parsed.engineerId);
+          setDropFeedback("Engineer removed from card");
+        }
+      } catch {
+        // Ignore invalid assignment payloads.
+      }
+    }
+
+    window.addEventListener("dragover", handleWindowDragOver);
+    window.addEventListener("drop", handleWindowDrop);
+    return () => {
+      window.removeEventListener("dragover", handleWindowDragOver);
+      window.removeEventListener("drop", handleWindowDrop);
+    };
+  }, [draggedAssignment]);
+
+  useEffect(() => {
+    if (!dropFeedback) {
+      return;
+    }
+    const timer = window.setTimeout(() => setDropFeedback(null), 1800);
+    return () => window.clearTimeout(timer);
+  }, [dropFeedback]);
 
   const engineersByCard = useMemo(() => {
     const map = new Map<
@@ -323,7 +384,13 @@ export function Board({ initialData }: Props) {
                     onEngineerDrop={(cardId, engineerId, sourceCardId) =>
                       void handleEngineerDropOnCard(cardId, engineerId, sourceCardId)
                     }
-                    onAssignedEngineerDragStart={() => undefined}
+                    onAssignedEngineerDragStart={(cardId, engineerId) =>
+                      setDraggedAssignment({
+                        engineerId,
+                        sourceCardId: cardId
+                      })
+                    }
+                    onAssignedEngineerDragEnd={() => setDraggedAssignment(null)}
                     onSelect={() => setActiveCard(card)}
                     onDelete={() => void deleteCard(card.id)}
                   />
@@ -382,9 +449,18 @@ export function Board({ initialData }: Props) {
       <EngineerBar
         engineers={engineers}
         onAddEngineer={addEngineerByEmail}
-        onUnassignEngineer={unassignEngineer}
         onUpdateEngineerProfile={updateEngineerProfile}
       />
+      {draggedAssignment ? (
+        <div className="pointer-events-none fixed bottom-24 left-1/2 z-40 -translate-x-1/2 rounded-full border border-rose-400/60 bg-rose-500/20 px-4 py-2 text-xs font-semibold text-rose-100 shadow-lg">
+          Drop anywhere outside a card to remove assignment
+        </div>
+      ) : null}
+      {dropFeedback ? (
+        <div className="pointer-events-none fixed bottom-24 left-1/2 z-40 -translate-x-1/2 rounded-full border border-emerald-400/60 bg-emerald-500/20 px-4 py-2 text-xs font-semibold text-emerald-100 shadow-lg">
+          {dropFeedback}
+        </div>
+      ) : null}
     </div>
   );
 }
