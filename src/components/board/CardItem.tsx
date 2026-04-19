@@ -71,10 +71,10 @@ export function CardItem({
         }
       }}
       onClick={onSelect}
-      className="cursor-pointer rounded-md border border-slate-700 bg-slate-800 p-3 shadow-sm transition hover:border-slate-500"
+      className="cursor-pointer rounded-md border border-slate-700 bg-slate-800 p-2 shadow-sm transition hover:border-slate-500"
     >
-      <div className="flex items-start justify-between gap-3">
-        <h4 className="text-sm font-semibold">{card.name}</h4>
+      <div className="flex items-start justify-between gap-2">
+        <h4 className="text-xs font-semibold leading-tight">{card.name}</h4>
         <button
           type="button"
           onClick={(event) => {
@@ -84,15 +84,15 @@ export function CardItem({
           className="text-slate-400 hover:text-red-300"
           aria-label="Delete card"
         >
-          <FaTrash className="h-3.5 w-3.5" />
+          <FaTrash className="h-3 w-3" />
         </button>
       </div>
       {labels.length > 0 ? (
-        <div className="mt-2 flex flex-wrap gap-1">
+        <div className="mt-1.5 flex flex-wrap gap-1">
           {labels.map((label) => (
             <span
               key={`${card.id}:${label.id}`}
-              className="rounded-full border border-slate-600 px-2 py-0.5 text-[10px] uppercase tracking-wide text-slate-200"
+              className="rounded-full border border-slate-600 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-slate-200"
               style={{ backgroundColor: `${label.color_hex}33` }}
             >
               {label.name}
@@ -100,7 +100,15 @@ export function CardItem({
           ))}
         </div>
       ) : null}
-      <div className="mt-2 flex items-center gap-2 text-xs text-slate-300">
+      {hasFiles ? (
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          <span className="inline-flex items-center gap-1 rounded-full border border-slate-600 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-slate-200">
+            <FaPaperclip className="h-2.5 w-2.5" />
+            Attachments
+          </span>
+        </div>
+      ) : null}
+      <div className="mt-1.5 flex items-center gap-2 text-[10px] text-slate-300">
         <div className="flex items-center gap-1">
           {assignedEngineers.map((engineer) => (
             // eslint-disable-next-line @next/next/no-img-element
@@ -121,13 +129,12 @@ export function CardItem({
                 onAssignedEngineerDragStart(card.id, engineer.engineerId);
               }}
               onDragEnd={onAssignedEngineerDragEnd}
-              className="h-5 w-5 rounded-full border border-slate-600"
+              className="h-4 w-4 rounded-full border border-slate-600"
             />
           ))}
         </div>
         {card.project_code ? <span>{card.project_code}</span> : null}
         <span>{format(new Date(card.created_at), "M/d")}</span>
-        {hasFiles ? <FaPaperclip className="h-3 w-3" /> : null}
       </div>
     </article>
   );

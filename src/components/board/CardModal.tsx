@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FaPaperclip } from "react-icons/fa";
 import { PmAutocomplete } from "@/components/board/PmAutocomplete";
 import type { CardLabel, PlannerCard } from "@/lib/types";
 
@@ -65,11 +66,24 @@ export function CardModal({
   const [linkUrl, setLinkUrl] = useState("");
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [isAddingLink, setIsAddingLink] = useState(false);
+  const [showAttachmentModal, setShowAttachmentModal] = useState(false);
 
   const activeLabels = labels.filter((label) => activeLabelIds.includes(label.id));
   const availableLabels = labels.filter(
     (label) => !activeLabelIds.includes(label.id)
   );
+  const attachmentPills = [
+    ...attachments.files.map((file) => ({
+      id: `file:${file.id}`,
+      name: file.file_name,
+      href: file.url
+    })),
+    ...attachments.links.map((link) => ({
+      id: `link:${link.id}`,
+      name: link.title,
+      href: link.url
+    }))
+  ];
 
   useEffect(() => {
     async function loadAttachments() {
@@ -347,99 +361,32 @@ export function CardModal({
 
           <div className="grid gap-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-300">Add attachments</span>
-            </div>
-            <div className="rounded-md border border-slate-700 bg-slate-900/80 p-3">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <label className="inline-flex cursor-pointer items-center justify-center rounded-md border border-slate-600 px-3 py-2 text-xs text-slate-200 hover:border-slate-400">
-                  {isUploadingFile ? "Uploading..." : "Upload file"}
-                  <input
-                    type="file"
-                    className="hidden"
-                    disabled={isUploadingFile}
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (file) {
-                        void uploadAttachment(file);
-                      }
-                      event.currentTarget.value = "";
-                    }}
-                  />
-                </label>
-                <span className="text-xs text-slate-500">or add a file URL</span>
-              </div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <input
-                  value={linkTitle}
-                  onChange={(event) => setLinkTitle(event.target.value)}
-                  placeholder="Link title (optional)"
-                  className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm"
-                />
-                <input
-                  value={linkUrl}
-                  onChange={(event) => setLinkUrl(event.target.value)}
-                  placeholder="https://example.com/file.pdf"
-                  className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm"
-                />
-              </div>
+              <span className="text-sm text-slate-300">Attachments</span>
               <button
                 type="button"
-                onClick={() => void addLinkAttachment()}
-                disabled={isAddingLink}
-                className="mt-2 rounded-md bg-sky-500 px-3 py-2 text-xs font-semibold text-slate-950 disabled:opacity-60"
+                onClick={() => setShowAttachmentModal(true)}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-600 px-3 py-1 text-xs text-slate-200 hover:border-slate-400"
               >
-                {isAddingLink ? "Adding..." : "Add URL"}
+                <FaPaperclip className="h-3 w-3" />
+                Add attachments
               </button>
-
-              {attachments.files.length > 0 || attachments.links.length > 0 ? (
-                <div className="mt-3 grid gap-2">
-                  {attachments.files.map((file) => (
-                    <div
-                      key={file.id}
-                      className="flex items-center justify-between rounded-md border border-slate-700 px-3 py-2 text-xs"
-                    >
-                      <a
-                        href={file.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="truncate text-sky-300 hover:text-sky-200"
-                      >
-                        {file.file_name}
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => void removeAttachment("file", file.id)}
-                        className="text-red-300 hover:text-red-200"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                  {attachments.links.map((link) => (
-                    <div
-                      key={link.id}
-                      className="flex items-center justify-between rounded-md border border-slate-700 px-3 py-2 text-xs"
-                    >
-                      <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="truncate text-sky-300 hover:text-sky-200"
-                      >
-                        {link.title}
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => void removeAttachment("link", link.id)}
-                        className="text-red-300 hover:text-red-200"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {attachmentPills.length > 0 ? (
+                attachmentPills.map((item) => (
+                  <a
+                    key={item.id}
+                    href={item.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-full border border-slate-600 bg-slate-800/80 px-3 py-1 text-xs text-slate-100 hover:border-slate-400"
+                  >
+                    <FaPaperclip className="h-2.5 w-2.5" />
+                    {item.name}
+                  </a>
+                ))
               ) : (
-                <p className="mt-3 text-xs text-slate-500">No attachments yet.</p>
+                <span className="text-xs text-slate-500">No attachments added</span>
               )}
             </div>
             {attachmentError ? (
@@ -567,6 +514,117 @@ export function CardModal({
           </button>
         </div>
       </div>
+      {showAttachmentModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl rounded-lg border border-slate-700 bg-slate-900 p-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Add attachments</h3>
+              <button
+                type="button"
+                onClick={() => setShowAttachmentModal(false)}
+                className="text-sm text-slate-300"
+              >
+                Close
+              </button>
+            </div>
+            <div className="mt-3 rounded-md border border-slate-700 bg-slate-900/80 p-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <label className="inline-flex cursor-pointer items-center justify-center rounded-md border border-slate-600 px-3 py-2 text-xs text-slate-200 hover:border-slate-400">
+                  {isUploadingFile ? "Uploading..." : "Upload file"}
+                  <input
+                    type="file"
+                    className="hidden"
+                    disabled={isUploadingFile}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) {
+                        void uploadAttachment(file);
+                      }
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </label>
+                <span className="text-xs text-slate-500">or add a file URL</span>
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <input
+                  value={linkTitle}
+                  onChange={(event) => setLinkTitle(event.target.value)}
+                  placeholder="Link title (optional)"
+                  className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm"
+                />
+                <input
+                  value={linkUrl}
+                  onChange={(event) => setLinkUrl(event.target.value)}
+                  placeholder="https://example.com/file.pdf"
+                  className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => void addLinkAttachment()}
+                disabled={isAddingLink}
+                className="mt-2 rounded-md bg-sky-500 px-3 py-2 text-xs font-semibold text-slate-950 disabled:opacity-60"
+              >
+                {isAddingLink ? "Adding..." : "Add URL"}
+              </button>
+              {attachments.files.length > 0 || attachments.links.length > 0 ? (
+                <div className="mt-3 grid gap-2">
+                  {attachments.files.map((file) => (
+                    <div
+                      key={file.id}
+                      className="flex items-center justify-between rounded-md border border-slate-700 px-3 py-2 text-xs"
+                    >
+                      <a
+                        href={file.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="truncate text-sky-300 hover:text-sky-200"
+                      >
+                        {file.file_name}
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => void removeAttachment("file", file.id)}
+                        className="text-red-300 hover:text-red-200"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  {attachments.links.map((link) => (
+                    <div
+                      key={link.id}
+                      className="flex items-center justify-between rounded-md border border-slate-700 px-3 py-2 text-xs"
+                    >
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="truncate text-sky-300 hover:text-sky-200"
+                      >
+                        {link.title}
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => void removeAttachment("link", link.id)}
+                        className="text-red-300 hover:text-red-200"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-slate-500">No attachments yet.</p>
+              )}
+            </div>
+            {attachmentError ? (
+              <p className="mt-2 text-xs text-red-300">{attachmentError}</p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
