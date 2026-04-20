@@ -273,7 +273,7 @@ export function CardModal({
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-3xl rounded-lg border border-slate-700 bg-slate-900 p-4">
+      <div className="w-full max-w-2xl rounded-lg border border-slate-700 bg-slate-900 p-3">
         <div className="flex items-center justify-between">
           <input
             value={form.name}

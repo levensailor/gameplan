@@ -367,12 +367,12 @@ export function Board({ initialData }: Props) {
                 event.preventDefault();
                 void moveCardToColumn(column.id);
               }}
-              className="min-h-[430px] w-[214px] min-w-[214px] rounded-lg border border-slate-800 bg-slate-900/70 p-2"
+              className="min-h-[640px] w-[320px] min-w-[320px] rounded-lg border border-slate-800 bg-slate-900/70 p-3"
             >
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-300">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-300">
                 {column.name}
               </h3>
-              <div className="mt-2 space-y-1.5">
+              <div className="mt-3 space-y-2">
                 {columnCards.map((card) => (
                   <CardItem
                     key={card.id}
@@ -399,7 +399,7 @@ export function Board({ initialData }: Props) {
               <button
                 type="button"
                 onClick={() => void addCard(column.id)}
-                className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-slate-700 px-2 py-1.5 text-xs text-slate-300 hover:border-slate-500"
+                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-slate-700 px-3 py-2 text-sm text-slate-300 hover:border-slate-500"
               >
                 <FaPlus className="h-3 w-3" />
                 Add card
