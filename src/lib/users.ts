@@ -1,5 +1,6 @@
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { createFallbackAvatarDataUrl } from "@/lib/avatar";
+import { DEFAULT_THEME, type ThemeName } from "@/lib/themes";
 
 type UpsertUserArgs = {
   webexPersonId: string;
@@ -49,4 +50,41 @@ export async function getEngineers() {
     throw new Error(`Engineer query failed: ${error.message}`);
   }
   return data ?? [];
+}
+
+export async function getUserTheme(userId: string): Promise<ThemeName> {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("app_users")
+    .select("theme_name")
+    .eq("id", userId)
+    .single();
+
+  if (error || !data?.theme_name) {
+    return DEFAULT_THEME;
+  }
+
+  return data.theme_name as ThemeName;
+}
+
+export async function updateUserTheme(
+  userId: string,
+  themeName: ThemeName
+): Promise<ThemeName> {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("app_users")
+    .update({
+      theme_name: themeName,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", userId)
+    .select("theme_name")
+    .single();
+
+  if (error || !data?.theme_name) {
+    throw new Error(error?.message ?? "Failed to update theme");
+  }
+
+  return data.theme_name as ThemeName;
 }

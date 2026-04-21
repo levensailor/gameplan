@@ -14,6 +14,8 @@ Levensailor
    - `sql/001_init_schema.sql`
    - `sql/002_seed_defaults.sql`
    - `sql/003_webex_directory_cache.sql`
+   - `sql/004_engineer_profile_fields.sql`
+   - `sql/005_user_theme_settings.sql`
 4. Build and deploy with Vercel:
    - `vercel`
    - `vercel --prod`

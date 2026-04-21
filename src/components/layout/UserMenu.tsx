@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FaChevronDown, FaUserCircle } from "react-icons/fa";
@@ -40,12 +41,13 @@ export function UserMenu({ fullName, email, avatarUrl }: Props) {
         <div className="absolute right-0 z-20 mt-2 w-64 rounded-md border border-slate-700 bg-slate-800 p-3 shadow-xl">
           <p className="text-sm font-medium">{fullName}</p>
           <p className="text-xs text-slate-400">{email}</p>
-          <button
-            type="button"
-            className="mt-3 w-full rounded-md border border-slate-600 px-3 py-1.5 text-left text-sm hover:bg-slate-700"
+          <Link
+            href="/settings"
+            onClick={() => setOpen(false)}
+            className="mt-3 block w-full rounded-md border border-slate-600 px-3 py-1.5 text-left text-sm hover:bg-slate-700"
           >
             Personal Settings
-          </button>
+          </Link>
           <button
             type="button"
             onClick={logout}

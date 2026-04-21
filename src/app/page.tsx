@@ -24,6 +24,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <code>sql/002_seed_defaults.sql</code>
             <br />
             <code>sql/003_webex_directory_cache.sql</code>
+            <br />
+            <code>sql/004_engineer_profile_fields.sql</code>
+            <br />
+            <code>sql/005_user_theme_settings.sql</code>
           </p>
         ) : null}
         {error === "oauth_failed" ? (
