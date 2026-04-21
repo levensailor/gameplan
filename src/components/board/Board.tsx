@@ -31,6 +31,11 @@ export function Board({ initialData }: Props) {
     sourceCardId: string;
   } | null>(null);
   const [dropFeedback, setDropFeedback] = useState<string | null>(null);
+  const [isAddCardModalOpen, setIsAddCardModalOpen] = useState(false);
+  const [addCardColumnId, setAddCardColumnId] = useState<string | null>(null);
+  const [newCardName, setNewCardName] = useState("");
+  const [isCreatingCard, setIsCreatingCard] = useState(false);
+  const [addCardError, setAddCardError] = useState<string | null>(null);
 
   useEffect(() => {
     void fetch("/api/webex/directory?sync=1");
@@ -147,22 +152,59 @@ export function Board({ initialData }: Props) {
     return map;
   }, [cardFiles, cardLinks]);
 
-  async function addCard(columnId: string) {
-    const name = window.prompt("Card name");
-    if (!name) {
+  async function addCard(columnId: string, name: string) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
       return;
     }
 
     const response = await fetch("/api/cards", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ columnId, name })
+      body: JSON.stringify({ columnId, name: trimmedName })
     });
     if (!response.ok) {
-      return;
+      throw new Error("Failed to create card");
     }
     const payload = (await response.json()) as { card: PlannerCard };
     setCards((prev) => [...prev, payload.card]);
+  }
+
+  function openAddCardModal(columnId: string) {
+    setAddCardColumnId(columnId);
+    setNewCardName("");
+    setAddCardError(null);
+    setIsAddCardModalOpen(true);
+  }
+
+  function closeAddCardModal() {
+    setIsAddCardModalOpen(false);
+    setAddCardColumnId(null);
+    setNewCardName("");
+    setAddCardError(null);
+  }
+
+  async function submitAddCard() {
+    if (!addCardColumnId) {
+      return;
+    }
+
+    const trimmed = newCardName.trim();
+    if (!trimmed) {
+      setAddCardError("Card name is required.");
+      return;
+    }
+
+    setIsCreatingCard(true);
+    setAddCardError(null);
+    try {
+      await addCard(addCardColumnId, trimmed);
+      closeAddCardModal();
+    } catch {
+      setAddCardError("Failed to create card. Please try again.");
+    } finally {
+      setIsCreatingCard(false);
+    }
   }
 
   async function deleteCard(cardId: string) {
@@ -398,7 +440,7 @@ export function Board({ initialData }: Props) {
               </div>
               <button
                 type="button"
-                onClick={() => void addCard(column.id)}
+                onClick={() => openAddCardModal(column.id)}
                 className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-slate-700 px-3 py-2 text-sm text-slate-300 hover:border-slate-500"
               >
                 <FaPlus className="h-3 w-3" />
@@ -446,6 +488,65 @@ export function Board({ initialData }: Props) {
           />
         ) : null}
       </section>
+      {isAddCardModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-lg border border-slate-700 bg-slate-900 p-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-slate-100">Add card</h3>
+              <button
+                type="button"
+                onClick={closeAddCardModal}
+                className="text-sm text-slate-300 hover:text-slate-100"
+                disabled={isCreatingCard}
+              >
+                Close
+              </button>
+            </div>
+            <label className="mt-3 grid gap-2 text-sm">
+              <span className="text-slate-300">Card name</span>
+              <input
+                value={newCardName}
+                onChange={(event) => {
+                  setNewCardName(event.target.value);
+                  if (addCardError) {
+                    setAddCardError(null);
+                  }
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    void submitAddCard();
+                  }
+                }}
+                placeholder="Untitled card"
+                autoFocus
+                className="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 outline-none ring-sky-400/40 placeholder:text-slate-500 focus:ring-2"
+              />
+            </label>
+            {addCardError ? (
+              <p className="mt-2 text-xs text-red-300">{addCardError}</p>
+            ) : null}
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeAddCardModal}
+                disabled={isCreatingCard}
+                className="rounded-md border border-slate-600 px-3 py-2 text-sm text-slate-200 hover:border-slate-400 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitAddCard()}
+                disabled={isCreatingCard}
+                className="rounded-md bg-sky-500 px-3 py-2 text-sm font-semibold text-slate-950 disabled:opacity-60"
+              >
+                {isCreatingCard ? "Adding..." : "Add card"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <EngineerBar
         engineers={engineers}
         onAddEngineer={addEngineerByEmail}
